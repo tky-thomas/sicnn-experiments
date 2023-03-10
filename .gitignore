@@ -1,0 +1,11 @@
+# ignore the Pycharm .idea file
+.idea
+
+# ignore the virtualenv, if existing
+venv/
+
+# ignore data folder
+pytorch-gconv-experiments/data/
+
+# ignores any document folders
+documentation/
