@@ -6,6 +6,7 @@ import torch.nn as nn
 def train_xent(model, optimizer, loader, device=torch.device('cuda')):
     model.train()
     criterion = nn.CrossEntropyLoss().to(device)
+    print(len(loader))
     for batch_idx, (data, target) in enumerate(loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()

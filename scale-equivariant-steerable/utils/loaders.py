@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, ConcatDataset
 from torchvision import datasets, transforms
 import json
 
+from .aar_lightbox_dataset import AAR_Lightbox_Dataset
 from .cutout import Cutout
 
 
@@ -121,4 +122,61 @@ def scale_mnist_test_loader(batch_size, root):
     dataset = datasets.ImageFolder(os.path.join(root, 'test'), transform=transform)
     loader = DataLoader(dataset, batch_size=batch_size,
                         shuffle=False, pin_memory=True, num_workers=2)
+    return loader
+
+
+def scale_aar_train_loader(batch_size, root, extra_scaling=1):
+    transform_modules = []
+    if not extra_scaling == 1:
+        if extra_scaling > 1:
+            extra_scaling = 1 / extra_scaling
+        scale = (extra_scaling, 1 / extra_scaling)
+        print('-- extra scaling ({:.3f} - {:.3f}) is used'.format(*scale))
+        scaling = transforms.RandomAffine(0, scale=scale, resample=3)
+        transform_modules.append(scaling)
+
+    transform_modules = transform_modules + [
+        transforms.Grayscale(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean['scale_mnist'], std['scale_mnist']),
+        transforms.Resize((224, 224))
+    ]
+
+    transform = transforms.Compose(transform_modules)
+    print(os.getcwd())
+    dataset = AAR_Lightbox_Dataset(img_labels_path="../data/aar-lightbox/LightBox_annotation.csv",
+                                   img_dir="../data/aar-lightbox/",
+                                   transform=transform)
+    loader = DataLoader(dataset, batch_size=batch_size,
+                        shuffle=True, pin_memory=True, num_workers=0)
+    return loader
+
+
+def scale_aar_val_loader(batch_size, root):
+    transform = transforms.Compose([
+        transforms.Grayscale(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean['scale_mnist'], std['scale_mnist']),
+        transforms.Resize((224, 224))
+    ])
+    dataset = AAR_Lightbox_Dataset(img_labels_path="../data/aar-lightbox/LightBox_annotation.csv",
+                                   img_dir="../data/aar-lightbox/",
+                                   transform=transform)
+    loader = DataLoader(dataset, batch_size=batch_size,
+                        shuffle=True, pin_memory=True, num_workers=0)
+    return loader
+
+
+def scale_aar_test_loader(batch_size, root):
+    transform = transforms.Compose([
+        transforms.Grayscale(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean['scale_mnist'], std['scale_mnist']),
+        transforms.Resize((224, 224))
+    ])
+    dataset = AAR_Lightbox_Dataset(img_labels_path="../data/aar-lightbox/LightBox_annotation.csv",
+                                   img_dir="../data/aar-lightbox/",
+                                   transform=transform)
+    loader = DataLoader(dataset, batch_size=batch_size,
+                        shuffle=False, pin_memory=True, num_workers=0)
     return loader

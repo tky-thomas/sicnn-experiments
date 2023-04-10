@@ -39,7 +39,7 @@ class MNIST_SES_Scalar(nn.Module):
         )
 
         self.linear = nn.Sequential(
-            nn.Linear(4 * C3, 256, bias=False),
+            nn.Linear(225 * C3, 256, bias=False),  # TODO: Find a way to make this line a dependent variable
             nn.BatchNorm1d(256),
             nn.ReLU(True),
             nn.Dropout(kwargs.get('dropout', 0.7)),
@@ -48,6 +48,7 @@ class MNIST_SES_Scalar(nn.Module):
 
     def forward(self, x):
         x = self.main(x)
+        print(x.size())
         x = x.view(x.size(0), -1)
         x = self.linear(x)
         return x

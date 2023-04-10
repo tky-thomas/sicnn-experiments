@@ -6,6 +6,7 @@ venv/
 
 # ignore data folder
 pytorch-gconv-experiments/data/
+data/
 
 # ignores any document folders
 documentation/
