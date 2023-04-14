@@ -1,11 +1,13 @@
 import os
 
+import json
 import torch
 import pandas as pd
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
 from torchvision.transforms.functional import crop
 from torchvision.transforms import ToPILImage
+from torchvision.datasets import ImageFolder
 
 
 class AAR_Lightbox_Dataset(Dataset):
@@ -38,7 +40,6 @@ class AAR_Lightbox_Dataset(Dataset):
 
         # Applies transformation
         if self.transform:
-            img = ToPILImage()(img)
             img = self.transform(img)
 
         # Creates a pytorch tensor label
@@ -53,3 +54,32 @@ class AAR_Lightbox_Dataset(Dataset):
 
     def extra_repr(self):
         return "None"
+
+
+class ImageNet_Classification(ImageFolder):
+    def find_classes(self, directory: str):
+        numeric_classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir())
+        if not numeric_classes:
+            raise FileNotFoundError(f"Couldn't find any class folder in {directory}.")
+
+        # Reads the Labels.json file
+        class_labels_f = open(os.path.abspath(os.path.join(directory, os.path.pardir, "Labels.json")))
+        class_names = json.load(class_labels_f)
+
+        # Replaces the class names with the actual named labels
+
+        classes = list()
+        for numeric_class in numeric_classes:
+            classes.append(class_names[numeric_class].split(",")[0])
+
+        class_labels_f.close()
+
+        class_to_idx = {cls_name: i for i, cls_name in enumerate(numeric_classes)}
+        return numeric_classes, class_to_idx
+
+
+# Tests the datasets
+if __name__ == '__main__':
+    imagenet_classification_dataset = ImageNet_Classification("data/imagenet-classification/train")
+    imagenet_classification_dataset.find_classes("data/imagenet-classification/train")
+    print(imagenet_classification_dataset[4000], len(imagenet_classification_dataset))
