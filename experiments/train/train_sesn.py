@@ -131,15 +131,20 @@ def train_sesn(
 
     start_time = time.time()
     best_acc = 0.0
+    train_acc_list = list()
+    val_acc_list = list()
 
     for epoch in range(epochs):
-        train_xent(model, optimizer, train_loader, device)
-        acc = test_acc(model, val_loader, device)
+        train_acc = train_xent(model, optimizer, train_loader, device)
+        val_acc = test_acc(model, val_loader, device)
         print('Epoch {:3d}/{:3d}| Acc@1: {:3.1f}%'.format(
-            epoch + 1, epochs, 100 * acc), flush=True)
-        if acc > best_acc:
-            best_acc = acc
+            epoch + 1, epochs, 100 * val_acc), flush=True)
+        if val_acc > best_acc:
+            best_acc = val_acc
             torch.save(model.state_dict(), save_model_path)
+
+        train_acc_list.append(train_acc)
+        val_acc_list.append(val_acc)
 
         lr_scheduler.step()
 
@@ -169,6 +174,18 @@ def train_sesn(
 
     # with open('results.yml', 'a') as f:
     #     f.write(dump_list_element_1line(results))
+
+    results = {
+        'dataset': dataloader_name,
+        'elapsed_time': int(elapsed_time),
+        'time_per_epoch': int(time_per_epoch),
+        'num_parameters': int(get_num_parameters(model)),
+        'train_acc': train_acc_list,
+        'val_acc': val_acc_list,
+        'final_acc': final_acc
+    }
+
+    return results
 
 
 if __name__ == '__main__':

@@ -5,14 +5,20 @@ import torch.nn as nn
 
 def train_xent(model, optimizer, loader, device=torch.device('cuda')):
     model.train()
+    accuracy = 0
     criterion = nn.CrossEntropyLoss().to(device)
     for batch_idx, (data, target) in enumerate(loader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
+        pred = output.argmax(1, keepdim=True)
         loss = criterion(output, target)
         loss.backward()
         optimizer.step()
+        accuracy += pred.eq(target.view_as(pred)).sum().item()
+
+    accuracy /= len(loader.dataset)
+    return accuracy
 
 
 def test_acc(model, loader, device=torch.device('cuda')):

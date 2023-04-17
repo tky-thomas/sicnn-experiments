@@ -149,8 +149,7 @@ def train_vgg16(
     val_acc_list = list()
 
     for epoch in range(epochs):
-        train_xent(model, optimizer, train_loader, device)
-        train_acc = test_acc(model, train_loader, device)
+        train_acc = train_xent(model, optimizer, train_loader, device)
         val_acc = test_acc(model, val_loader, device)
         print('Epoch {:3d}/{:3d}| Acc@1: {:3.1f}%'.format(
             epoch + 1, epochs, 100 * val_acc), flush=True)
