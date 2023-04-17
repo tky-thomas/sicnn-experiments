@@ -82,3 +82,7 @@ def mnist_ss_28(**kwargs):
 
 def mnist_ss_56(**kwargs):
     return nn.Sequential(nn.Upsample(scale_factor=2), MNIST_SS(pool_size=8, ker_size_range=np.arange(7, 19, 2)))
+
+
+def ss_classification_224(**kwargs):
+    return MNIST_SS(pool_size=32, ker_size_range=np.arange(11, 27, 2))
