@@ -1,3 +1,4 @@
+import os
 from matplotlib import pyplot as plt
 
 from torch.utils.data import DataLoader, random_split
@@ -18,7 +19,7 @@ AAR_DATA_SPLIT = [0.8, 0.1, 0.1]
 IMAGENET_CLASSIFY_DATA_SPLIT = [0.8, 0.1, 0.1]
 
 
-def make_aar_loaders(batch_size=64, extra_scaling=1):
+def make_aar_loaders(batch_size=64, extra_scaling=1, num_output_channels=1):
     transform_modules_train = []
     if not extra_scaling == 1:
         if extra_scaling > 1:
@@ -30,7 +31,7 @@ def make_aar_loaders(batch_size=64, extra_scaling=1):
 
     transform_modules = [
         transforms.ToPILImage(),
-        transforms.Grayscale(),
+        transforms.Grayscale(num_output_channels=num_output_channels),  # VGG16 compatibility
         transforms.ToTensor(),
         transforms.Normalize(mean['scale_mnist'], std['scale_mnist']),
         transforms.Resize((224, 224))
@@ -53,7 +54,7 @@ def make_aar_loaders(batch_size=64, extra_scaling=1):
     return train_loader, val_loader, test_loader
 
 
-def make_imagenet_loaders(batch_size=64, extra_scaling=1):
+def make_imagenet_loaders(batch_size=64, extra_scaling=1, num_output_channels=1):
     transform_modules_train = []
     if not extra_scaling == 1:
         if extra_scaling > 1:
@@ -64,7 +65,7 @@ def make_imagenet_loaders(batch_size=64, extra_scaling=1):
         transform_modules_train.append(scaling)
 
     transform_modules = [
-        transforms.Grayscale(),
+        transforms.Grayscale(num_output_channels=num_output_channels),
         transforms.ToTensor(),
         transforms.Normalize(mean['scale_mnist'], std['scale_mnist']),
         transforms.Resize((224, 224))

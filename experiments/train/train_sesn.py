@@ -1,7 +1,6 @@
 '''MIT License. Copyright (c) 2020 Ivan Sosnovik, Michał Szmaja'''
 import os
 import time
-from argparse import ArgumentParser
 
 import torch
 import torch.optim as optim
@@ -14,73 +13,86 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              "scale-equivariant-steerable")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir, os.path.pardir)))
-import models
+from models.mnist_ses import mnist_ses_scalar_28
+from dataloaders import make_aar_loaders, make_imagenet_loaders
 from utils.train_utils import train_xent, test_acc
 from utils.model_utils import get_num_parameters
 from utils.misc import dump_list_element_1line
 
 
-def train_sesn():
+def train_sesn(
+        dataloader_name,
+        batch_size=64,
+        scaling_factor=1,
+        lr=0.01,
+        lr_steps=[20, 40],
+        lr_gamma=0.1,
+        save_model_path=None,
+        epochs=10
+):
     #########################################
     # model configuration
     #########################################
-    model_names = sorted(name for name in models.__dict__
-                         if name.islower() and not name.startswith("__")
-                         and callable(models.__dict__[name]))
+    # model_names = sorted(name for name in models.__dict__
+    #                      if name.islower() and not name.startswith("__")
+    #                      and callable(models.__dict__[name]))
 
-    parser = ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--epochs', type=int, default=60)
+    # parser = ArgumentParser()
+    # parser.add_argument('--batch_size', type=int, default=64)
+    # parser.add_argument('--epochs', type=int, default=60)
 
-    parser.add_argument('--optim', type=str, default='adam', choices=['adam', 'sgd'])
-    parser.add_argument('--momentum', type=float, default=0.9)
-    parser.add_argument('--nesterov', action='store_true', default=False)
-    parser.add_argument('--decay', type=float, default=1e-4)
-    parser.add_argument('--lr', type=float, default=0.01)
-    parser.add_argument('--lr_steps', type=int, nargs='+', default=[20, 40])
-    parser.add_argument('--lr_gamma', type=float, default=0.1)
+    # parser.add_argument('--optim', type=str, default='adam', choices=['adam', 'sgd'])
+    # parser.add_argument('--momentum', type=float, default=0.9)
+    # parser.add_argument('--nesterov', action='store_true', default=False)
+    # parser.add_argument('--decay', type=float, default=1e-4)
+    # parser.add_argument('--lr', type=float, default=0.01)
+    # parser.add_argument('--lr_steps', type=int, nargs='+', default=[20, 40])
+    # parser.add_argument('--lr_gamma', type=float, default=0.1)
 
-    parser.add_argument('--model', type=str, choices=model_names, required=True)
-    parser.add_argument('--extra_scaling', type=float, default=1.0,
-                        required=False, help='add scaling data augmentation')
-    parser.add_argument('--cuda', action='store_true', default=False)
-    parser.add_argument('--save_model_path', type=str, default='')
-    parser.add_argument('--tag', type=str, default='', help='just a tag')
-    parser.add_argument('--data_dir', type=str)
+    # parser.add_argument('--model', type=str, choices=model_names, required=True)
+    # parser.add_argument('--extra_scaling', type=float, default=1.0,
+    #                    required=False, help='add scaling data augmentation')
+    # parser.add_argument('--cuda', action='store_true', default=False)
+    # parser.add_argument('--save_model_path', type=str, default='')
+    # parser.add_argument('--tag', type=str, default='', help='just a tag')
+    # parser.add_argument('--data_dir', type=str)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    print("Args:")
-    for k, v in vars(args).items():
-        print("  {}={}".format(k, v))
+    # print("Args:")
+    # for k, v in vars(args).items():
+    #     print("  {}={}".format(k, v))
 
-    print(flush=True)
-    assert len(args.save_model_path)
+    # print(flush=True)
+    # assert len(args.save_model_path)
 
     #########################################
     # Data
     #########################################
-    train_loader = loaders.scale_aar_train_loader(args.batch_size, args.data_dir, args.extra_scaling)
-    val_loader = loaders.scale_aar_val_loader(args.batch_size, args.data_dir)
-    test_loader = loaders.scale_aar_test_loader(args.batch_size, args.data_dir)
+    if dataloader_name == "imagenet_classify":
+        train_loader, val_loader, test_loader = make_imagenet_loaders(batch_size, scaling_factor, num_output_channels=1)
+    elif dataloader_name == "aar":
+        train_loader, val_loader, test_loader = make_aar_loaders(batch_size, scaling_factor, num_output_channels=1)
 
-    print('Train:')
-    print(loaders.loader_repr(train_loader))
-    print('\nVal:')
-    print(loaders.loader_repr(val_loader))
-    print('\nTest:')
-    print(loaders.loader_repr(test_loader))
+    # print('Train:')
+    # print(loaders.loader_repr(train_loader))
+    # print('\nVal:')
+    # print(loaders.loader_repr(val_loader))
+    # print('\nTest:')
+    # print(loaders.loader_repr(test_loader))
 
     #########################################
     # Model
     #########################################
-    model = models.__dict__[args.model]
-    model = model(**vars(args))
+    # model = models.__dict__[args.model]
+    # model = model(**vars(args))
+
+    model = mnist_ses_scalar_28()
     print('\nModel:')
     print(model)
     print()
 
-    use_cuda = args.cuda and torch.cuda.is_available()
+    use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
     print('Device: {}'.format(device))
 
@@ -97,35 +109,37 @@ def train_sesn():
     # optimizer
     #########################################
     parameters = filter(lambda x: x.requires_grad, model.parameters())
-    if args.optim == 'adam':
-        optimizer = optim.Adam(parameters, lr=args.lr)
-    if args.optim == 'sgd':
-        optimizer = optim.SGD(parameters, lr=args.lr, momentum=args.momentum,
-                              weight_decay=args.decay, nesterov=args.nesterov)
+    optimizer = optim.Adam(parameters, lr=lr)
+
+    # if args.optim == 'adam':
+    #     optimizer = optim.Adam(parameters, lr=args.lr)
+    # if args.optim == 'sgd':
+    #     optimizer = optim.SGD(parameters, lr=args.lr, momentum=args.momentum,
+    #                           weight_decay=args.decay, nesterov=args.nesterov)
 
     print(optimizer)
-    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, args.lr_steps, args.lr_gamma)
+    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, lr_steps, lr_gamma)
 
     #########################################
     # training
     #########################################
     print('\nTraining\n' + '-' * 30)
 
-    if args.save_model_path:
-        if not os.path.isdir(os.path.dirname(args.save_model_path)):
-            os.makedirs(os.path.dirname(args.save_model_path))
+    if save_model_path:
+        if not os.path.isdir(os.path.dirname(save_model_path)):
+            os.makedirs(os.path.dirname(save_model_path))
 
     start_time = time.time()
     best_acc = 0.0
 
-    for epoch in range(args.epochs):
+    for epoch in range(epochs):
         train_xent(model, optimizer, train_loader, device)
         acc = test_acc(model, val_loader, device)
         print('Epoch {:3d}/{:3d}| Acc@1: {:3.1f}%'.format(
-            epoch + 1, args.epochs, 100 * acc), flush=True)
+            epoch + 1, epochs, 100 * acc), flush=True)
         if acc > best_acc:
             best_acc = acc
-            torch.save(model.state_dict(), args.save_model_path)
+            torch.save(model.state_dict(), save_model_path)
 
         lr_scheduler.step()
 
@@ -134,28 +148,28 @@ def train_sesn():
     print('Best Acc@1: {:3.1f}%'.format(best_acc * 100), flush=True)
     end_time = time.time()
     elapsed_time = end_time - start_time
-    time_per_epoch = elapsed_time / args.epochs
+    time_per_epoch = elapsed_time / epochs
 
     print('\nTesting\n' + '-' * 30)
-    model.load_state_dict(torch.load(args.save_model_path))
+    model.load_state_dict(torch.load(save_model_path))
     final_acc = test_acc(model, test_loader, device)
     print('Test Acc:', final_acc)
 
     #########################################
     # save results
     #########################################
-    results = vars(args)
-    results.update({
-        'dataset': 'scale_mnist',
-        'elapsed_time': int(elapsed_time),
-        'time_per_epoch': int(time_per_epoch),
-        'num_parameters': int(get_num_parameters(model)),
-        'acc': final_acc,
-    })
+    # results = vars(args)
+    # results.update({
+    #     'dataset': 'scale_mnist',
+    #     'elapsed_time': int(elapsed_time),
+    #     'time_per_epoch': int(time_per_epoch),
+    #     'num_parameters': int(get_num_parameters(model)),
+    #     'acc': final_acc,
+    # })
 
-    with open('results.yml', 'a') as f:
-        f.write(dump_list_element_1line(results))
+    # with open('results.yml', 'a') as f:
+    #     f.write(dump_list_element_1line(results))
 
 
 if __name__ == '__main__':
-    train_scale_mnist()
+    train_sesn()
