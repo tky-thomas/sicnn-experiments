@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              "scale-equivariant-steerable")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir, os.path.pardir)))
-from models.mnist_ses import mnist_ses_scalar_28
+from models.mnist_ss import ss_classification_224
 from dataloaders import make_aar_loaders, make_imagenet_loaders
 from utils.train_utils import train_xent, test_acc
 from utils.model_utils import get_num_parameters
@@ -87,10 +87,9 @@ def train_sesn(
     # model = models.__dict__[args.model]
     # model = model(**vars(args))
 
-    model = mnist_ses_scalar_28()
+    model = ss_classification_224(num_classes=6)
     print('\nModel:')
     print(model)
-    print()
 
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')

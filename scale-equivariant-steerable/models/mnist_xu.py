@@ -18,7 +18,7 @@ def pool_from_groups(x, num_groups, pool='max'):
 
 class MNIST_XU_Pool(nn.Module):
 
-    def __init__(self, pool_size=4, scales=[1], pool='max'):
+    def __init__(self, pool_size=4, scales=[1], pool='max', num_classes=10):
         super().__init__()
         C1, C2, C3 = 32, 63, 95
         self.num_scales = len(scales)
@@ -46,7 +46,7 @@ class MNIST_XU_Pool(nn.Module):
             nn.BatchNorm1d(256),
             nn.ReLU(True),
             nn.Dropout(0.7),
-            nn.Linear(256, 10)
+            nn.Linear(256, num_classes)
         )
 
     def forward(self, x):
@@ -65,3 +65,9 @@ def mnist_xu_28(**kwargs):
 def mnist_xu_56(**kwargs):
     scales = [0.3, 0.45, 0.67, 1.0, 1.49, 2.23, 3.33]
     return nn.Sequential(nn.Upsample(scale_factor=2), MNIST_XU_Pool(pool_size=8, scales=scales, pool='max'))
+
+
+def xu_classification_224(num_classes=10, **kwargs):
+    scales = [0.3, 0.45, 0.67, 1.0, 1.49, 2.23, 3.33]
+    return MNIST_XU_Pool(pool_size=32, scales=scales, pool='max', num_classes=num_classes)
+

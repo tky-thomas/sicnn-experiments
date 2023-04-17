@@ -17,7 +17,7 @@ from .impl.scale_steerable import *
 
 
 class MNIST_SS(nn.Module):
-    def __init__(self, pool_size=4, ker_size_range=np.arange(7, 19, 2)):
+    def __init__(self, pool_size=4, ker_size_range=np.arange(7, 19, 2), num_classes=10):
         super().__init__()
 
         kernel_sizes = [11, 11, 11]
@@ -55,7 +55,7 @@ class MNIST_SS(nn.Module):
         self.fc1bn = nn.BatchNorm2d(256)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.7)
-        self.fc2 = nn.Conv2d(256, 10, 1)  # FC2
+        self.fc2 = nn.Conv2d(256, num_classes, 1)  # FC2
 
     def forward(self, x):
         x = self.conv1(x)
@@ -84,5 +84,5 @@ def mnist_ss_56(**kwargs):
     return nn.Sequential(nn.Upsample(scale_factor=2), MNIST_SS(pool_size=8, ker_size_range=np.arange(7, 19, 2)))
 
 
-def ss_classification_224(**kwargs):
-    return MNIST_SS(pool_size=32, ker_size_range=np.arange(11, 27, 2))
+def ss_classification_224(num_classes=10, **kwargs):
+    return MNIST_SS(pool_size=32, ker_size_range=np.arange(11, 27, 2), num_classes=num_classes)
