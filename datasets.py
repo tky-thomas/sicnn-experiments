@@ -1,12 +1,15 @@
+import math
 import os
+import sys
+from time import sleep
 
 import json
 import torch
+from torchvision.transforms import *
 import pandas as pd
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
 from torchvision.transforms.functional import crop
-from torchvision.transforms import ToPILImage
 from torchvision.datasets import ImageFolder
 
 
@@ -78,8 +81,42 @@ class ImageNet_Classification(ImageFolder):
         return numeric_classes, class_to_idx
 
 
+def compute_mean_stddev():
+    mean_sum = torch.tensor([0.0, 0.0, 0.0])
+    stdev_sum = torch.tensor([0.0, 0.0, 0.0])
+
+    transform_modules = [
+        transforms.ToPILImage(),
+        transforms.ToTensor()
+    ]
+
+    transform_modules = transforms.Compose(transform_modules)
+
+    # Makes the dataloader
+    print("Calculating Dataset Statistics")
+    dataset = AAR_Lightbox_Dataset(img_labels_path="data/aar-lightbox/LightBox_annotation.csv",
+                                   img_dir="data/aar-lightbox/",
+                                   transform=transform_modules)
+    for i, (image, _) in enumerate(dataset):
+        stdev, mean = torch.std_mean(image, (2, 1))
+        mean_sum += mean
+        stdev_sum += stdev
+
+        i_bars = math.floor(i * 21 / len(dataset))
+        sys.stdout.write('\r')
+        # the exact output you're looking for:
+        sys.stdout.write("[%-20s] %d%% %d | %d" % ('=' * i_bars, 5 * i_bars, i, len(dataset)))
+        sys.stdout.flush()
+        sleep(0.001)
+
+    print("\n", mean_sum, stdev_sum)
+    print("Mean", mean_sum / len(dataset), "Standard Deviation", stdev_sum / len(dataset))
+
+
 # Tests the datasets
 if __name__ == '__main__':
-    imagenet_classification_dataset = ImageNet_Classification("data/imagenet-classification/train")
-    imagenet_classification_dataset.find_classes("data/imagenet-classification/train")
-    print(imagenet_classification_dataset[4000], len(imagenet_classification_dataset))
+    # imagenet_classification_dataset = ImageNet_Classification("data/imagenet-classification/train")
+    # imagenet_classification_dataset.find_classes("data/imagenet-classification/train")
+    # print(imagenet_classification_dataset[4000], len(imagenet_classification_dataset))
+
+    compute_mean_stddev()

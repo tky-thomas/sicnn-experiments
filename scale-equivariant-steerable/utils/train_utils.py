@@ -2,6 +2,10 @@
 import torch
 import torch.nn as nn
 
+import math
+import sys
+from time import sleep
+
 
 def train_xent(model, optimizer, loader, device=torch.device('cuda')):
     model.train()
@@ -17,6 +21,19 @@ def train_xent(model, optimizer, loader, device=torch.device('cuda')):
         optimizer.step()
         accuracy += pred.eq(target.view_as(pred)).sum().item()
 
+        i_bars = math.floor(batch_idx * 21 / (len(loader.dataset)/64))
+        sys.stdout.write('\r')
+        # Progress Bar
+        sys.stdout.write("Epoch Progress: [%-20s] %d%% %d | %d Accuracy: %.2f"
+                         % ('=' * i_bars,
+                            5 * i_bars,
+                            batch_idx,
+                            int(len(loader.dataset)/64),
+                            accuracy / ((batch_idx + 1) * 64)))
+        sys.stdout.flush()
+        sleep(0.001)
+
+    print("\n")
     accuracy /= len(loader.dataset)
     return accuracy
 

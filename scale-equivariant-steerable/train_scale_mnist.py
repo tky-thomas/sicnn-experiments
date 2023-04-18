@@ -35,7 +35,6 @@ def train_scale_mnist():
     parser.add_argument('--lr_steps', type=int, nargs='+', default=[20, 40])
     parser.add_argument('--lr_gamma', type=float, default=0.1)
 
-
     parser.add_argument('--model', type=str, choices=model_names, required=True)
     parser.add_argument('--extra_scaling', type=float, default=1.0,
                         required=False, help='add scaling data augmentation')
@@ -43,7 +42,6 @@ def train_scale_mnist():
     parser.add_argument('--save_model_path', type=str, default='')
     parser.add_argument('--tag', type=str, default='', help='just a tag')
     parser.add_argument('--data_dir', type=str)
-
 
     args = parser.parse_args()
 
