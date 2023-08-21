@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              "scale-equivariant-steerable")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir, os.path.pardir)))
-from models.mnist_ss import ss_classification_224
+from models.mnist_xu import xu_classification_224
 from dataloaders import make_aar_loaders, make_imagenet_loaders
 from utils.train_utils import train_xent, test_acc
 from utils.model_utils import get_num_parameters
@@ -69,10 +69,13 @@ def train_sesn(
     #########################################
     # Data
     #########################################
+    num_classes = 2
     if dataloader_name == "imagenet_classify":
         train_loader, val_loader, test_loader = make_imagenet_loaders(batch_size, scaling_factor, num_output_channels=1)
+        num_classes = 6
     elif dataloader_name == "aar":
         train_loader, val_loader, test_loader = make_aar_loaders(batch_size, scaling_factor, num_output_channels=1)
+        num_classes = 2
 
     # print('Train:')
     # print(loaders.loader_repr(train_loader))
@@ -87,7 +90,7 @@ def train_sesn(
     # model = models.__dict__[args.model]
     # model = model(**vars(args))
 
-    model = ss_classification_224(num_classes=6)
+    model = xu_classification_224(num_classes=num_classes)
     print('\nModel:')
     print(model)
 
