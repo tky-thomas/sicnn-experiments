@@ -10,3 +10,6 @@ data/
 
 # ignores any document folders
 documentation/
+
+# ignores the software zip
+20316601_software.zip
