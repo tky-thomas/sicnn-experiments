@@ -20,7 +20,7 @@ from utils.model_utils import get_num_parameters
 from utils.misc import dump_list_element_1line
 
 
-def train_sesn(
+def train_ss(
         dataloader_name,
         batch_size=64,
         scaling_factor=1,
@@ -134,7 +134,7 @@ def train_sesn(
     val_acc_list = list()
 
     for epoch in range(epochs):
-        train_acc = train_xent(model, optimizer, train_loader, device)
+        train_acc = train_xent(model, optimizer, train_loader, device, batch_size)
         val_acc = test_acc(model, val_loader, device)
         print('Epoch {:3d}/{:3d}| Acc@1: {:3.1f}%'.format(
             epoch + 1, epochs, 100 * val_acc), flush=True)
@@ -188,4 +188,4 @@ def train_sesn(
 
 
 if __name__ == '__main__':
-    train_sesn()
+    train_ss()

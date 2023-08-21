@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-from torchvision.models import vgg16
+from torchvision.models import vgg16, VGG16_Weights
 
 import sys
 import os.path
@@ -23,14 +23,16 @@ from utils.misc import dump_list_element_1line
 class VGG16_Classify(nn.Module):
     def __init__(self, num_classes=6):
         super(VGG16_Classify, self).__init__()
-        self.classifier = nn.Linear(1000, 6)
-        self.net = vgg16()
+        self.classifier = nn.Linear(1000, 64)
+        self.classifier_2 = nn.Linear(64, num_classes)
+        self.net = vgg16(weights=VGG16_Weights.DEFAULT)
         for p in self.net.parameters():
             p.requires_grad = False
 
     def forward(self, x):
         x1 = self.net(x)
-        y = self.classifier(x1)
+        x2 = self.classifier(x1)
+        y = self.classifier_2(x2)
         return y
 
 
@@ -38,7 +40,7 @@ def train_vgg16(
         dataloader_name,
         batch_size=64,
         scaling_factor=1,
-        lr=0.01,
+        lr=0.001,
         lr_steps=[20, 40],
         lr_gamma=0.1,
         save_model_path=None,
@@ -83,10 +85,13 @@ def train_vgg16(
     #########################################
     # Data
     #########################################
+    num_classes = 2
     if dataloader_name == "imagenet_classify":
         train_loader, val_loader, test_loader = make_imagenet_loaders(batch_size, scaling_factor, num_output_channels=3)
+        num_classes = 6
     elif dataloader_name == "aar":
         train_loader, val_loader, test_loader = make_aar_loaders(batch_size, scaling_factor, num_output_channels=3)
+        num_classes = 2
 
     # print('Train:')
     # print(loaders.loader_repr(train_loader))
@@ -101,7 +106,7 @@ def train_vgg16(
     # model = models.__dict__[args.model]
     # model = model(**vars(args))
 
-    model = VGG16_Classify()
+    model = VGG16_Classify(num_classes=num_classes)
     print('\nModel:')
     print(model)
     print()
@@ -149,7 +154,7 @@ def train_vgg16(
     val_acc_list = list()
 
     for epoch in range(epochs):
-        train_acc = train_xent(model, optimizer, train_loader, device)
+        train_acc = train_xent(model, optimizer, train_loader, device, batch_size)
         val_acc = test_acc(model, val_loader, device)
         print('Epoch {:3d}/{:3d}| Acc@1: {:3.1f}%'.format(
             epoch + 1, epochs, 100 * val_acc), flush=True)

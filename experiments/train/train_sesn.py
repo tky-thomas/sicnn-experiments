@@ -13,9 +13,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              "scale-equivariant-steerable")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir, os.path.pardir)))
-from models.mnist_xu import xu_classification_224
-from dataloaders import make_aar_loaders, make_imagenet_loaders
-from utils.train_utils import train_xent, test_acc
+from models.mnist_ses import ses_classification_224, \
+    ses_classification_224_segment, \
+    ses_classification_224_segment_complete
+from dataloaders import make_aar_loaders, make_imagenet_loaders, make_voc_loaders
+from utils.train_utils import train_xent, test_acc, train_xent_segmentation, test_acc_segmentation
 from utils.model_utils import get_num_parameters
 from utils.misc import dump_list_element_1line
 
@@ -69,13 +71,12 @@ def train_sesn(
     #########################################
     # Data
     #########################################
-    num_classes = 2
     if dataloader_name == "imagenet_classify":
         train_loader, val_loader, test_loader = make_imagenet_loaders(batch_size, scaling_factor, num_output_channels=1)
-        num_classes = 6
     elif dataloader_name == "aar":
         train_loader, val_loader, test_loader = make_aar_loaders(batch_size, scaling_factor, num_output_channels=1)
-        num_classes = 2
+    elif dataloader_name == "voc_segmentation":
+        train_loader, val_loader, test_loader = make_voc_loaders(batch_size, scaling_factor, num_output_channels=1)
 
     # print('Train:')
     # print(loaders.loader_repr(train_loader))
@@ -90,7 +91,10 @@ def train_sesn(
     # model = models.__dict__[args.model]
     # model = model(**vars(args))
 
-    model = xu_classification_224(num_classes=num_classes)
+    if dataloader_name == "voc_segmentation":
+        model = ses_classification_224_segment_complete()
+    else:
+        model = ses_classification_224(num_classes=2)
     print('\nModel:')
     print(model)
 
@@ -137,10 +141,18 @@ def train_sesn(
     val_acc_list = list()
 
     for epoch in range(epochs):
-        train_acc = train_xent(model, optimizer, train_loader, device)
-        val_acc = test_acc(model, val_loader, device)
-        print('Epoch {:3d}/{:3d}| Acc@1: {:3.1f}%'.format(
-            epoch + 1, epochs, 100 * val_acc), flush=True)
+
+        if dataloader_name == "voc_segmentation":
+            train_acc = train_xent_segmentation(model, optimizer, train_loader, device, batch_size)
+            val_acc = test_acc_segmentation(model, val_loader, device)
+            print('Epoch {:3d}/{:3d}| Acc@1: {:3.6f}'.format(
+                epoch + 1, epochs, val_acc), flush=True)
+        else:
+            train_acc = train_xent(model, optimizer, train_loader, device, batch_size)
+            val_acc = test_acc(model, val_loader, device)
+            print('Epoch {:3d}/{:3d}| Acc@1: {:3.1f}%'.format(
+                epoch + 1, epochs, 100 * val_acc), flush=True)
+
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), save_model_path)
@@ -152,14 +164,23 @@ def train_sesn(
 
     print('-' * 30)
     print('Training is finished')
-    print('Best Acc@1: {:3.1f}%'.format(best_acc * 100), flush=True)
+
+    if dataloader_name == "voc_segmentation":
+        print('Best Acc@1: {:3.6f}'.format(best_acc), flush=True)
+    else:
+        print('Best Acc@1: {:3.1f}%'.format(best_acc * 100), flush=True)
+
     end_time = time.time()
     elapsed_time = end_time - start_time
     time_per_epoch = elapsed_time / epochs
 
     print('\nTesting\n' + '-' * 30)
     model.load_state_dict(torch.load(save_model_path))
-    final_acc = test_acc(model, test_loader, device)
+
+    if dataloader_name == "voc_segmentation":
+        final_acc = test_acc_segmentation(model, test_loader, device)
+    else:
+        final_acc = test_acc(model, test_loader, device)
     print('Test Acc:', final_acc)
 
     #########################################
@@ -191,4 +212,4 @@ def train_sesn(
 
 
 if __name__ == '__main__':
-    train_sesn()
+    train_sesn(dataloader_name="imagenet_classify")

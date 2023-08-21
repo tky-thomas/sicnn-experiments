@@ -12,6 +12,8 @@ from torchvision.io import read_image, ImageReadMode
 from torchvision.transforms.functional import crop
 from torchvision.datasets import ImageFolder
 
+from matplotlib import pyplot as plt
+
 
 class AAR_Lightbox_Dataset(Dataset):
     def __init__(self, img_labels_path="LightBox_annotation.csv", img_dir="", transform=None):
@@ -28,6 +30,7 @@ class AAR_Lightbox_Dataset(Dataset):
         img_path = self.image_labels.iloc[idx, 0]
         img_path = os.path.relpath(img_path, "/content/drive/My Drive/AAR/dataset/LightBox/")
         img_path = os.path.join(self.img_dir, img_path).replace("\\", "/")
+        img_path = img_path.replace("jpg", "JPG")
         img = read_image(img_path, ImageReadMode.UNCHANGED)
 
         # Crops out the lightbox
@@ -94,10 +97,12 @@ def compute_mean_stddev():
 
     # Makes the dataloader
     print("Calculating Dataset Statistics")
-    dataset = AAR_Lightbox_Dataset(img_labels_path="data/aar-lightbox/LightBox_annotation.csv",
-                                   img_dir="data/aar-lightbox/",
-                                   transform=transform_modules)
+    dataset = VOCSegmentation(img_labels_path="data/voc-segmentation/labels.csv",
+                              img_dir="data/voc-segmentation/JPEGImages",
+                              labels_dir="data/voc-segmentation/SegmentationClass",
+                              transform=transform_modules)
     for i, (image, _) in enumerate(dataset):
+        image = image.type(torch.float)
         stdev, mean = torch.std_mean(image, (2, 1))
         mean_sum += mean
         stdev_sum += stdev
@@ -113,10 +118,64 @@ def compute_mean_stddev():
     print("Mean", mean_sum / len(dataset), "Standard Deviation", stdev_sum / len(dataset))
 
 
+class VOCSegmentation(Dataset):
+    def __init__(self, img_labels_path="labels.csv", img_dir="", labels_dir="", transform=None):
+        self.image_labels = pd.read_csv(img_labels_path)
+        self.img_dir = img_dir
+        self.labels_dir = labels_dir
+        self.transform = transform
+
+        self.root = None
+
+    def __len__(self):
+        return len(self.image_labels)
+
+    def __getitem__(self, idx):
+        abs_path = self.image_labels.iloc[idx, 0]
+        img_path = os.path.join(self.img_dir, abs_path).replace("\\", "/")
+        labels_path = os.path.join(self.labels_dir, abs_path).replace("\\", "/")
+
+        # Convert the png to jpg
+        img_path = img_path.replace("png", "jpg")
+
+        img = read_image(img_path, ImageReadMode.UNCHANGED)
+        label = read_image(labels_path, ImageReadMode.UNCHANGED)
+
+        # Applies transformation
+        if self.transform:
+            img = self.transform(img)
+
+            # Label transformation
+            label_transform = [
+                transforms.ToPILImage(),
+                transforms.ToTensor(),
+                transforms.Resize((112, 112))
+            ]
+            label_transform = transforms.Compose(label_transform)
+            label = label_transform(label)
+
+        # Creates a PyTorch label
+        label[label != 0] = 1
+
+        return img, label, abs_path
+
+    def extra_repr(self):
+        return "None"
+
+
 # Tests the datasets
 if __name__ == '__main__':
     # imagenet_classification_dataset = ImageNet_Classification("data/imagenet-classification/train")
     # imagenet_classification_dataset.find_classes("data/imagenet-classification/train")
     # print(imagenet_classification_dataset[4000], len(imagenet_classification_dataset))
 
-    compute_mean_stddev()
+    voc_segmentation_dataset = VOCSegmentation(img_labels_path="data/voc-segmentation/labels.csv",
+                                               img_dir="data/voc-segmentation/JPEGImages",
+                                               labels_dir="data/voc-segmentation/SegmentationClass")
+    image, label = voc_segmentation_dataset[0]
+
+    print(label.size())
+    plt.imshow(image.permute(1, 2, 0))
+    plt.show()
+    plt.imshow(label.permute(1, 2, 0))
+    plt.show()

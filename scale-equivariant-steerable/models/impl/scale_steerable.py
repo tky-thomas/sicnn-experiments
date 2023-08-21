@@ -108,14 +108,17 @@ class steerable_conv(nn.Module):
                         for p in range(len(phase_range)):
                             for b in range(len(basis_scale)):
                                 filter_real, filter_imag, eff_k = generate_filter_basis([max_size, max_size],
-                                                                                        phi_range[j], sigma_phi_range[k],
-                                                                                        k_range[i], basis_scale[b], phase_range[p], drop_rate)
+                                                                                        phi_range[j],
+                                                                                        sigma_phi_range[k],
+                                                                                        k_range[i], basis_scale[b],
+                                                                                        phase_range[p], drop_rate)
                                 filter_real = filter_real / (np.linalg.norm(filter_real))
                                 filter_imag = filter_imag / (np.linalg.norm(filter_imag))
                                 self.effective_k[i] = eff_k
 
                                 self.init_he[i, count] = 2 / (
-                                    basis_size * in_channels * out_channels * torch.pow(torch.norm(torch.from_numpy(filter_real)), 2.0))
+                                        basis_size * in_channels * out_channels * torch.pow(
+                                    torch.norm(torch.from_numpy(filter_real)), 2.0))
                                 self.filter_real[i, :, :, count] = torch.from_numpy(filter_real)
                                 self.filter_imag[i, :, :, count] = torch.from_numpy(filter_imag)
                                 count = count + 1
@@ -148,9 +151,11 @@ class steerable_conv(nn.Module):
                 mult_imag_k = self.mult_real[k, :, :, :] * np.sin(-k_val * np.log(
                     s)) + self.mult_imag[k, :, :, :] * np.cos(-k_val * np.log(s))
                 W_real[k, :, :, :, :] = torch.einsum("ijk,abk->ijab", mult_real_k,
-                                                     self.filter_real[k, Smid - Swid:Smid + Swid + 1, Smid - Swid:Smid + Swid + 1, :]).contiguous()
+                                                     self.filter_real[k, Smid - Swid:Smid + Swid + 1,
+                                                     Smid - Swid:Smid + Swid + 1, :]).contiguous()
                 W_imag[k, :, :, :, :] = torch.einsum("ijk,abk->ijab", mult_imag_k,
-                                                     self.filter_imag[k, Smid - Swid:Smid + Swid + 1, Smid - Swid:Smid + Swid + 1, :]).contiguous()
+                                                     self.filter_imag[k, Smid - Swid:Smid + Swid + 1,
+                                                     Smid - Swid:Smid + Swid + 1, :]).contiguous()
 
             W_final = torch.sum(W_real, 0) - torch.sum(W_imag, 0)
             W_all.append(W_final)
